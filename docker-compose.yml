@@ -1,0 +1,101 @@
+version: '3'
+#docker network create xman_net_work
+networks:
+  custom_net:
+    external:
+      name: xman_net_work
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - "888:80"
+    depends_on:
+      - php-fpm
+    networks:
+      - custom_net
+    volumes:
+      - ../wwwroot:/var/www
+      - ./nginx/nginx:/etc/nginx
+      - ./nginx/logs:/var/log/nginx 
+    privileged: true
+    restart: always
+  php-fpm:
+    container_name: php72
+    build:
+      context: ./
+      dockerfile: php/Dockerfile72
+    #ports:
+    #   - "9000:9000"
+    depends_on:
+      - redis
+      - mysql
+    networks:
+      - custom_net
+    volumes:
+      #- ./www:/usr/share/nginx/html
+      #- ./php/etc:/usr/local/etc
+      - ./php/logs:/usr/local/var/log
+      - ../wwwroot:/var/www
+    privileged: true
+    restart: always
+  golang:
+    container_name: go
+    image: golang:latest
+    ports:
+      - "8088:8088"
+    networks:
+      - custom_net
+    depends_on:
+      - redis
+      - mysql
+    volumes:
+      - ../goroot:/go
+    tty: true
+    restart: always
+    environment:
+      GO111MODULE: "on"
+      GOPROXY: "https://mirrors.aliyun.com/goproxy,direct"
+  redis:
+    container_name: redis
+    image: redis:latest
+    command: redis-server --requirepass 123456
+    ports:
+      - "6378:6379"
+    networks:
+      - custom_net
+    privileged: true
+    restart: always
+  # rabbitmq:
+  #   container_name: rabbitmq
+  #   image: rabbitmq:management
+  #   volumes:
+  #     - ./rabbitmq/data:/data
+  #   ports:
+  #     - "15672:15672"
+  #     - "5672:5672"
+  #   networks:
+  #     - custom_net
+  #   privileged: true
+  #   restart: always
+  #   environment:
+  #     RABBITMQ_DEFAULT_VHOST: "tp5.cc"
+  #     RABBITMQ_DEFAULT_USER: "admin"
+  #     RABBITMQ_DEFAULT_PASS: "123456"
+  mysql:
+    container_name: mysql
+    image: mysql:5.7
+    privileged: true
+    restart: always
+    ports:
+      - "3305:3306"
+    volumes:
+      - ./mysql/conf:/etc/mysql
+      - ./mysql/logs:/var/log/mysql
+      - ./mysql/data:/var/lib/mysql
+    networks:
+      - custom_net
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+
+
